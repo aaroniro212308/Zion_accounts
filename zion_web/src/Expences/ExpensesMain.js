@@ -70,7 +70,7 @@ const SubExpensesModal = ({ expenses }) => {
     ...expense,
     index: index + 1, // Adding 1 to start index from 1 instead of 0
   }));
-
+  const totalAmount = expenses.reduce((sum, expense) => sum + expense.amount, 0);
   return (
     <>
       <div style={{ justifyContent: "center" }}>
@@ -93,6 +93,9 @@ const SubExpensesModal = ({ expenses }) => {
           pageSize={5}
           getRowId={(row) => row._id} // Assuming you still need this prop for unique row IDs
         />{" "}
+          <div style={{ marginTop: '16px', textAlign: 'right', fontWeight: 'bold' }}>
+          Total Amount: Rs{totalAmount.toFixed(2)}
+        </div>
       </Modal>
     </>
   );
@@ -193,25 +196,59 @@ const ExpenseManagementPage = () => {
   const filterData = () => {
     setFilteredData(data);
   };
+  // const generatePDF = () => {
+  //   const columnsToExport = columns.filter(
+  //     (col) => col.field !== "action" && col.field !== "imageUrls"
+  //   );
+  //   const prepareDataForReport = (data) => {
+  //     return data.map((menu) => {
+  //       const rowData = {};
+  //       columnsToExport.forEach((col) => {
+  //         rowData[col.field] = menu[col.field];
+  //       });
+  //       return rowData;
+  //     });
+  //   };
+
+  //   const reportData = prepareDataForReport(filteredData);
+  //   exportToPDF(columnsToExport, reportData, {
+  //     title: "Expenses Report",
+  //   });
+  // };
+
+
   const generatePDF = () => {
     const columnsToExport = columns.filter(
       (col) => col.field !== "action" && col.field !== "imageUrls"
     );
+  
     const prepareDataForReport = (data) => {
-      return data.map((menu) => {
+      return data.map((expense) => {
         const rowData = {};
         columnsToExport.forEach((col) => {
-          rowData[col.field] = menu[col.field];
+          if (col.field === "expenses") {
+            // Flatten the sub-expenses
+            rowData[col.field] = expense[col.field]
+              .map((subExpense, index) => `#${index + 1}: ${subExpense.subtitle} - $${subExpense.amount}`)
+              .join("\n");
+          } else if (col.field === "date") {
+            // Format the date as DD/MM/YYYY
+            rowData[col.field] = moment(expense[col.field]).format("DD/MM/YYYY");
+          } else {
+            rowData[col.field] = expense[col.field];
+          }
         });
         return rowData;
       });
     };
-
+  
     const reportData = prepareDataForReport(filteredData);
     exportToPDF(columnsToExport, reportData, {
       title: "Expenses Report",
     });
   };
+  
+  
   // Function to handle search input change
   const handleSearchInputChange = (e) => {
     setSearchQuery(e.target.value);
